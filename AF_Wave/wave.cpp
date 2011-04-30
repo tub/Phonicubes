@@ -29,6 +29,14 @@ uint16_t temp16;
 
 #define DVOLUME 0
 
+///////////////////////////////////////////////////////////////////
+//
+//
+// INTERRUPT HANDLER TO FEED THE DAC
+// FEEDS A SINGLE SAMPLE
+//
+///////////////////////////////////////////////////////////////////
+
 #if defined(__AVR_ATmega328P__)
 SIGNAL(TIMER1_COMPA_vect) {
 #else
@@ -51,24 +59,41 @@ SIGNAL(SIG_OUTPUT_COMPARE1A) {
   if (!playing) 
     return;
 
-
-  if (currentpos == endbuffpos) {
-    if (doublebuffready) {
+  // reached the end of the current buffer?
+  if (currentpos == endbuffpos) 
+  {
+	// next buffer ready loaded from SD card?
+    if (doublebuffready) 
+	{
       // swap double buffers
-      if (playbuff == buffer1) {
-	playbuff = buffer2;
-	doublebuff = buffer1;
-      } else {
-	playbuff = buffer1;
-	doublebuff = buffer2;
+      if (playbuff == buffer1) 
+	  {
+		playbuff = buffer2;
+		doublebuff = buffer1;
+      } 
+	  else 
+	  {
+		playbuff = buffer1;
+		doublebuff = buffer2;
       }
+
+	  // set playing position to the start of the buffer
       currentpos = playbuff;
+
+	  // set end position to end of the buffer
       endbuffpos = playbuff + PLAYBUFFLEN;
       doublebuffready = 0;
-      if (!fillingbuffer) {
-	TIMSK1 |= _BV(OCIE1B);   // fill the doublebuffer up
+
+	  // check if we're already in process of filling buffer
+      if (!fillingbuffer) 
+	  {
+		//??
+		TIMSK1 |= _BV(OCIE1B);   // fill the doublebuffer up
       }
-    } else {
+    } 
+	else 
+	{
+	  // data not loaded quick enough
       playing->errors++;
       return;
     }
@@ -190,7 +215,14 @@ SIGNAL(SIG_OUTPUT_COMPARE1A) {
 }
 
 
-// this is the interrupt that fills the playbuffer
+///////////////////////////////////////////////////////////////////
+//
+//
+// INTERRUPT HANDLER TO READ FROM SD CARD
+// 
+//
+///////////////////////////////////////////////////////////////////
+
 #if defined(__AVR_ATmega328P__)
 SIGNAL(TIMER1_COMPB_vect) {
 #else
@@ -211,24 +243,28 @@ SIGNAL(SIG_OUTPUT_COMPARE1B) {
 	
   uint16_t read;
 
+  // turn off the timer interrupt??
   TIMSK1 &= ~_BV(OCIE1B);   // turn off bufferfiller 
-  if (doublebuffready) { // we're not needed ??
-    return;
+  if(doublebuffready) 
+  { 
+	  // we're not needed ??
+      return;
   }
 
   fillingbuffer = 1;   // we're doing stuff, quit buggin
 
-  sei();
+  sei(); // enable interrupts
 
   read = readwavhack(playing, doublebuff, PLAYBUFFLEN);
 
   if (read == 0) {
     playing->stop();
+
   }
-  cli();
+  cli();// disable interrupts
   fillingbuffer = 0;
   doublebuffready = 1;
-  sei();
+  sei();// enable interrupts
   
   // Work-around for avr-gcc 4.3 OSX version bug
 // Restore the registers that the compiler misses
@@ -290,12 +326,23 @@ void Wavefile::play(void) {
 
 #define SECTORSIZE 512 
 
-uint16_t readwavhack(Wavefile *wav, uint8_t *buff, uint16_t len) {
+///////////////////////////////////////////////////////////////////
+//
+//
+// ACTUALLY READ FROM SD CARD (try for 256 bytes = 1 full buffer)
+// 
+//
+///////////////////////////////////////////////////////////////////
+uint16_t readwavhack(Wavefile *wav, uint8_t *buff, uint16_t len) 
+{
   uint8_t headerbuff[5];
+
 #if DEBUG > 1
   putstring("*hacK "); uart_putdw_dec(len); putstring_nl("");
 #endif
-  if (wav->remainingBytesInChunk == 0) {
+
+  if (wav->remainingBytesInChunk == 0) 
+  {
     // read chunk ID
     if (fat16_read_file(wav->fd, headerbuff, 4) != 4)
       return 0;
@@ -333,7 +380,8 @@ uint16_t readwavhack(Wavefile *wav, uint8_t *buff, uint16_t len) {
 
   uint16_t ret;
 
-  if ((wav->fd->pos % SECTORSIZE == 0) && !wav->inmiddlesector) { 
+  if ((wav->fd->pos % SECTORSIZE == 0) && !wav->inmiddlesector) 
+  { 
 #if DEBUG > 1
     putstring("starting sector...");
 #endif
@@ -348,7 +396,9 @@ uint16_t readwavhack(Wavefile *wav, uint8_t *buff, uint16_t len) {
     putstring("ADDR = "); uart_putdw_hex(wav->fd->pos);  putstring_nl("");
 #endif
     wav->inmiddlesector = 1;
-  } else if (wav->inmiddlesector) {
+  } 
+  else if (wav->inmiddlesector) 
+  {
     ret = sd_raw_read_more(buff, len);
 #if DEBUG > 1
     putstring(", read more..."); uart_putw_dec(ret);    
@@ -363,7 +413,8 @@ uint16_t readwavhack(Wavefile *wav, uint8_t *buff, uint16_t len) {
     len = ret;
     wav->fd->pos += len;
     //    putstring("ADDR = "); uart_putdw_hex(wav->fd->pos);  putstring_nl("");
-    if (wav->fd->pos % SECTORSIZE == 0) {
+    if (wav->fd->pos % SECTORSIZE == 0) 
+	{
       sd_raw_read_end();
 #if DEBUG > 1
       putstring_nl(" sector done");
@@ -373,15 +424,17 @@ uint16_t readwavhack(Wavefile *wav, uint8_t *buff, uint16_t len) {
       if (wav->fd->pos % wav->fd->fs->header.cluster_size == 0) {
 	/* we are on a cluster boundary, so get the next cluster */
 	if(! (wav->fd->pos_cluster = fat16_get_next_cluster(wav->fd->fs, wav->fd->pos_cluster)))
-	  {
+	{
 	    wav->fd->pos_cluster = 0;
 	    putstring_nl("failed to get new cluster");
 	    return (uint16_t)-1;	
-	  }
+	}
 	//putstring("**********************new cluster "); uart_putw_hex(wav->fd->pos_cluster);
       }
     }
-  } else {
+  } 
+  else 
+  {
     if ((unsigned)fat16_read_file(wav->fd, buff, len) != len)
       return 0;
   }

@@ -12,6 +12,7 @@
 typedef struct fat16_file_struct * File;
 
 class AF_Wave {
+public:
   struct partition_struct *partition;
   struct fat16_fs_struct* fs;
   struct fat16_dir_struct* dd;
