@@ -1,15 +1,18 @@
 #include <NewSoftSerial.h>
 
-int prev = 0;
+//Defines
 
-#define MIN_ANALOG_READ 5
+// cubes available to read
 #define NUM_SLOTS 4
+// Phonemes possible to enter using the cubes
 #define NUM_PHONEMES 11 //Missing one at the mo: d
+// Target-word RFID cards
 #define NUM_CARDS 5
 
-// wavesheidl serial pins
+// wavesheild serial pins
 #define WAV_TX 2
 #define WAV_RX 3
+
 // rfid serial pins
 #define RFID_TX 5
 #define RFID_RX 4
@@ -17,12 +20,17 @@ int prev = 0;
 NewSoftSerial wavSerial(WAV_RX, WAV_TX);
 NewSoftSerial rfidSerial(RFID_RX, RFID_TX);
 
+
+// defines the ranges we detect as different phonemes
+// these values relate to the output of analogRead()
 int minValues[] = {
   7, 120, 320, 465, 500, 595, 890, 910, 975, 985, 1000, 1024};
+  
+// The phonemes we're using, these match the array indexes of the minValues above  
 String phonemes[] = {
   "s","a","t","i","p","n","ck","e","h","r","m"}; //,"d"}
 
-
+// The IDs of the target-word cards
 byte targetRfids[NUM_CARDS][5] = {
   { 0x03,0x00,0x61,0x45,0x54 },
   { 0x22, 0x00, 0xba, 0x8a, 0x74 },
@@ -31,6 +39,7 @@ byte targetRfids[NUM_CARDS][5] = {
   { 0x03, 0x00, 0x6a, 0x65, 0x62 },
 };
 
+// Strings associated with the cards above.
 String targetStrings[] = {
   "arm",
   "hat",
@@ -39,15 +48,17 @@ String targetStrings[] = {
   "tree"
 };
 
+// Word we're currently aiming for in the game
 String targetWord = NULL;
 
-int slots[NUM_SLOTS];
+// Contains the string associated with each slot
 String slotStrs[NUM_SLOTS];
 
-// RFID reading stuff
+// Current RFID code (6 bytes)
 byte code[6];
 
 void setup() {
+  // for debug output
   Serial.begin(9600);
 
   // define pin modes for wave shield tx, rx:
@@ -55,6 +66,7 @@ void setup() {
   pinMode(WAV_TX, OUTPUT);
   pinMode(RFID_RX, INPUT);
   pinMode(RFID_TX, OUTPUT);
+  
   // set the data rate for the SoftwareSerial port
   wavSerial.begin(9600);
   rfidSerial.begin(9600);
@@ -62,20 +74,31 @@ void setup() {
 
 void loop() {
 
+  // Read must be called in each loop as we're using software serial
   readRfid();
 
-
+  // read the cubes, and act if they've changed
   boolean hasChanged = false;
   for(int i = 0; i < NUM_SLOTS; i++){
     hasChanged |= readCube(i);
   }
   if(hasChanged){
+    // debug to serial
     printCubes();
+    // perform game logic
     checkPhonicsMatchTarget();
   }
+  // and relax
   delay(100);
 }
 
+/*
+  Checks if the slots currently match the target word.
+  Takes into account 'whitespace' (empty slots) at each end of the word.
+  e.g. 'f','u','n','' will match 'fun'
+  however empty slots inside words will cause a mis-match
+  e.g. 'f','','u','n' WON'T match 'fun'
+*/
 void checkPhonicsMatchTarget(){
   if(targetWord == NULL){
     return;
@@ -91,10 +114,15 @@ void checkPhonicsMatchTarget(){
  current = current.trim();
  Serial.println(current);
  if(current.equals(targetWord)){
+   // TODO: We don't have the 'congrats' sample yet
    Serial.println("Congrats! Try another");
  }
 }
 
+/*
+  read a single cube's value, store the correct string in the slot array or NULL if slot's empty
+  returns true if cube's string has changed, otherwise false
+*/
 boolean readCube(int n){
   int an = analogRead(n);
   boolean debounced = false;
@@ -138,6 +166,10 @@ boolean readCube(int n){
   return false;
 }
 
+/*
+  Talk to the waveSheild board over software-serial, 
+  tell it to play the sample for the given slot
+*/
 void sayPhoneme(int slot){
   String str = slotStrs[slot];
   //delay 1/2 sec
@@ -149,8 +181,8 @@ void sayPhoneme(int slot){
   Serial.println(str);
 }
 
+/* Print slot's status for debugging */
 void printCubes(){
-
   for(int i = 0; i < NUM_SLOTS; i++){
     if(slotStrs[i] == NULL){
       Serial.print("_");
@@ -162,7 +194,12 @@ void printCubes(){
   Serial.println();
 }
 
+/* Modified version of code from http://www.arduino.cc/playground/Code/ID12
 
+   Reads the software serial port looking for an RFID header (2), then reads the next 12 bytes.
+   Creates and checks a checksum of the data.
+   If the checksum passes then rfidChanged() is called.
+*/
 void readRfid(){
   byte i = 0;
   byte val = 0;
@@ -212,6 +249,7 @@ void readRfid(){
   }
 }
 
+/* Change the target word if the RFID card is recognised. */
 void rfidChanged(){
   for (int i=0; i<5; i++) {
     if (code[i] < 16) Serial.print("0");
@@ -230,13 +268,14 @@ void rfidChanged(){
       if(j == 4){
         targetWord = targetStrings[i];
         //we've got our card!
+        // TODO: Tell kid to spell word, say the word (waiting for samples)
         Serial.print("target: ");
         Serial.println(targetWord);
         return;
       }
     }
   }
-
+  Serial.println("RFID card not recognised, ignoring.");
 }
 
 
