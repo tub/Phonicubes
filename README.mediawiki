@@ -2,3 +2,18 @@
 
 Phonicubes is an open-source hardware and software toy, designed to help teach kids English using the Phonics system. 
 It was created as part of the Great Global Hackerspace Challenge, and is documented in more detail on our [http://www.element14.com/community/groups/buildbrighton?view=blog Element-14 Blog]
+
+== Modules ==
+=== CubeController ===
+
+Arduino code for the control system, it polls the RFID reader and the cube slots, 
+then tells the SoundBoard what to do based on those inputs.
+
+===SoundBoard===
+
+Another Arduino sketch, this runs on a [http://www.ladyada.net/make/waveshield/index.html Wave Shield] (availble from adafruit)
+It uses a slightly modified version of the waveshield's Arduino library which is available under the ''AF_Wave'' subdirectory
+
+===Hardware===
+
+In here you'll find the source files to make the Phonicube yourself.
