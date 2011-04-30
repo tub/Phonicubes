@@ -1,4 +1,4 @@
 ==Phonicubes==
 
 Phonicubes is an open-source hardware and software toy, designed to help teach kids English using the Phonics system. 
-It was created as part of the Great Global Hackerspace Challenge, and is documented in more detail on our [Element-14 Blog http://www.element14.com/community/groups/buildbrighton?view=blog]
+It was created as part of the Great Global Hackerspace Challenge, and is documented in more detail on our [http://www.element14.com/community/groups/buildbrighton?view=blog Element-14 Blog]
