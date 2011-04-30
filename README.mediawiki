@@ -1,3 +1,5 @@
+__NOTOC__
+
 ==Phonicubes==
 
 Phonicubes is an open-source hardware and software toy, designed to help teach kids English using the Phonics system. 
