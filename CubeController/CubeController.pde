@@ -7,7 +7,7 @@
 // Phonemes possible to enter using the cubes
 #define NUM_PHONEMES 11 //Missing one at the mo: d
 // Target-word RFID cards
-#define NUM_CARDS 5
+#define NUM_CARDS 9
 
 // wavesheild serial pins
 #define WAV_TX 2
@@ -28,7 +28,7 @@ int minValues[] = {
   
 // The phonemes we're using, these match the array indexes of the minValues above  
 String phonemes[] = {
-  "s","a","t","i","p","n","ck","e","h","r","m"}; //,"d"}
+  "s","a","t","i","p","n","c","e","h","r","m"}; //,"d"}
 
 // The IDs of the target-word cards
 byte targetRfids[NUM_CARDS][5] = {
@@ -37,6 +37,10 @@ byte targetRfids[NUM_CARDS][5] = {
   { 0x03, 0x00, 0x60, 0x31, 0x44 },
   { 0x03, 0x00, 0x6a, 0x65, 0x65 },
   { 0x03, 0x00, 0x6a, 0x65, 0x62 },
+  { 0x03, 0x00, 0x6a, 0x65, 0x61 },
+  { 0x03, 0x00, 0x60, 0xDD, 0x30 },
+  { 0x03, 0x00, 0x6a, 0x64, 0xde },
+  { 0x03, 0x00, 0x64, 0xdf, 0xd6 },
 };
 
 // Strings associated with the cards above.
@@ -45,7 +49,11 @@ String targetStrings[] = {
   "hat",
   "ear",
   "map",
-  "tree"
+  "tree",
+  "rat",
+  "net",
+  "pen",
+  "hac",
 };
 
 // Word we're currently aiming for in the game
@@ -70,6 +78,10 @@ void setup() {
   // set the data rate for the SoftwareSerial port
   wavSerial.begin(9600);
   rfidSerial.begin(9600);
+  
+  //Hoot!
+  wavSerial.print('*');
+  wavSerial.println("hoot");
 }
 
 void loop() {
@@ -114,7 +126,10 @@ void checkPhonicsMatchTarget(){
  current = current.trim();
  Serial.println(current);
  if(current.equals(targetWord)){
-   // TODO: We don't have the 'congrats' sample yet
+   wavSerial.print("*");
+   wavSerial.println(targetWord);
+   wavSerial.print("*");
+   wavSerial.println("welldone"); // "well done, lets try another word"
    Serial.println("Congrats! Try another");
  }
 }
@@ -252,7 +267,7 @@ void readRfid(){
 /* Change the target word if the RFID card is recognised. */
 void rfidChanged(){
   for (int i=0; i<5; i++) {
-    if (code[i] < 16) Serial.print("0");
+    if ([i] < 16) Serial.print("0");
     Serial.print(code[i], HEX);
     Serial.print(" ");
   }
@@ -268,7 +283,12 @@ void rfidChanged(){
       if(j == 4){
         targetWord = targetStrings[i];
         //we've got our card!
-        // TODO: Tell kid to spell word, say the word (waiting for samples)
+        //play wav
+         wavSerial.print("*");
+        wavSerial.println("spell"); // "can you spell..."
+        wavSerial.print("*");
+        wavSerial.println(targetWord);
+        
         Serial.print("target: ");
         Serial.println(targetWord);
         return;
