@@ -131,6 +131,7 @@ void checkPhonicsMatchTarget(){
    wavSerial.print("*");
    wavSerial.println("welldone"); // "well done, lets try another word"
    Serial.println("Congrats! Try another");
+   targetWord = NULL;
  }
 }
 
@@ -187,8 +188,6 @@ boolean readCube(int n){
 */
 void sayPhoneme(int slot){
   String str = slotStrs[slot];
-  //delay 1/2 sec
-  wavSerial.print(";");
   //play wav
   wavSerial.print("*");
   wavSerial.println(str);
@@ -267,7 +266,7 @@ void readRfid(){
 /* Change the target word if the RFID card is recognised. */
 void rfidChanged(){
   for (int i=0; i<5; i++) {
-    if ([i] < 16) Serial.print("0");
+    if (code[i] < 16) Serial.print("0");
     Serial.print(code[i], HEX);
     Serial.print(" ");
   }
